@@ -1,25 +1,29 @@
-version: '3.7'
-
+version: "3.9"
 services:
-  app:
-    build:
-      context: . 
-      dockerfile: docker/deploy/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - mysql
-    ports:
-      - 3000:3000
-
-  mysql:
+  db:
     image: mysql:5.7
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: database
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+    command: --default-authentication-plugin=mysql_native_password
     ports:
       - 3306:3306
-    volumes:
-      - "./docker/mysql/dump.sql:/docker-entrypoint-initdb.d/dump.sql"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_PASSWORD: password
+      MYSQL_USER: user
+      MYSQL_DATABASE: party_db
+    networks:
+      - backend
+  app:
+    build: . 
+    ports:
+      - "3000:3000"
+    environment:
+      MYSQL_HOST: db
+    depends_on:
+      - db
+    command: sh -c "/wait && ./party"
+    networks:
+      - backend
+
+networks:
+  backend:
