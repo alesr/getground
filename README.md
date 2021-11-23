@@ -2,7 +2,7 @@
 
 The GetGround Part App allows managing the part guestlist.
 
-Since the capacity, the number of tables are variable (not specified in requirement), we allow the table's creation on demand.
+Since the capacity and the number of tables are variable (not specified in requirement), we allow the table's creation on demand.
 
 When a guest wants to add his name to the list, it must provide the "number" of the table (as he sees it on a layout picture).
 
@@ -11,7 +11,13 @@ If the table does not exist, we create a table with the chosen number, default t
 If the table does exist, we check if the remaining available seats are enough for his party.
 
 
-The table size is defined during the app initialization as an enviroment variable (default size 12).
+The table size is defined during the app initialization as an environment variable (default size 12).
+
+## How to run:
+
+```
+make docker-up # Initilizalizes db and app containers
+```
 
 ## Use Cases
 
@@ -118,3 +124,39 @@ Response:
 }
 ```
 
+## Code structure
+
+```
+.
+├── cmd
+│   └── party
+│       └── main.go  // Initialization
+├── docker-compose.yaml
+├── Dockerfile
+├── internal
+│   ├── app // REST application 
+│   │   ├── app.go
+│   │   └── partyctrl
+│   │       ├── partyctrl.go  // Party HTTP Handlers (transport layer)
+│   │       └── partyctrl_test.go
+│   └── pkg
+│       └── party
+│           ├── errors.go
+│           ├── mock.go
+│           ├── models.go
+│           ├── model_test.go
+│           ├── party.go // Party Service (Domain layer)
+│           ├── party_test.go
+│           └── repository
+│               ├── mock.go
+│               ├── mysql.go
+│               ├── mysql_test.go
+│               └── repository.go // Part repository (storage layer)
+├── Makefile
+├── pkg
+│   └── database
+│       └── database.go
+└── README.md
+```
+
+[Standard Go Project Layout](https://github.com/golang-standards/project-layout)
