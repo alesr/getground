@@ -78,7 +78,7 @@ func TestAddGuestToGuestList(t *testing.T) {
 			observed, err := party.AddGuestToGuestList(context.TODO(), c.given)
 
 			assert.Equal(t, c.expectedResult, observed)
-			assert.Equal(t, c.expectedError, err)
+			assert.True(t, errors.Is(err, c.expectedError))
 		})
 	}
 
@@ -98,7 +98,7 @@ func TestAddGuestToGuestList(t *testing.T) {
 			})
 
 		assert.Nil(t, observed)
-		assert.Equal(t, errTestRepo, err)
+		assert.True(t, errors.Is(err, errTestRepo))
 	})
 
 	t.Run("returns an error when guest is already in guest list", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestAddGuestToGuestList(t *testing.T) {
 			})
 
 		assert.Nil(t, observed)
-		assert.Equal(t, ErrGuestAlreadyInList, err)
+		assert.True(t, errors.Is(err, ErrGuestAlreadyInList))
 	})
 
 	t.Run("returns an error when table has not enough available seats", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestAddGuestToGuestList(t *testing.T) {
 			})
 
 		assert.Nil(t, observed)
-		assert.Equal(t, ErrTableNotEnoughSeats, err)
+		assert.True(t, errors.Is(err, ErrTableNotEnoughSeats))
 	})
 
 	t.Run("return no error when the table has enough available seats", func(t *testing.T) {
@@ -191,22 +191,6 @@ func TestAddGuestToGuestList(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, observed)
 	})
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			repo := repository.Mock{}
-			repo.UpsertGuestFunc = func(ctx context.Context, guest *repository.Guest) error {
-				return c.expectedError
-			}
-
-			party := New(zap.NewNop(), &repo, testTableSize)
-			observed, err := party.AddGuestToGuestList(context.TODO(), c.given)
-
-			assert.Equal(t, c.expectedResult, observed)
-			assert.Equal(t, c.expectedError, err)
-		})
-	}
-	// TODO(alesr): more tests should be added, but we're going to leave this one for now.
 }
 
 func TestGetGuestList(t *testing.T) {
@@ -255,7 +239,7 @@ func TestGetGuestList(t *testing.T) {
 			observed, err := party.GetGuestList(context.TODO())
 
 			assert.Equal(t, c.expectedResult, observed)
-			assert.Equal(t, c.expectedError, err)
+			assert.True(t, errors.Is(err, c.expectedError))
 		})
 	}
 }
@@ -329,7 +313,7 @@ func TestCreateTableAndAddToGuestList(t *testing.T) {
 			party := New(zap.NewNop(), &repo, testTableSize)
 			observedErr := party.createTableAndAddToGuestList(context.TODO(), tc.given)
 
-			assert.Equal(t, tc.expectedError, observedErr)
+			assert.True(t, errors.Is(observedErr, tc.expectedError))
 			assert.Equal(t, tc.expectedCreateTableCalled, createTableCalled)
 			assert.Equal(t, tc.expectedAddToGuestListCalled, addToGuestListCalled)
 		})
@@ -439,7 +423,7 @@ func TestWelcomeGuest(t *testing.T) {
 					AccompanyingGuests: 456,
 				})
 
-			assert.Equal(t, tc.expectedError, observedErr)
+			assert.True(t, errors.Is(observedErr, tc.expectedError))
 		})
 	}
 
@@ -466,7 +450,7 @@ func TestWelcomeGuest(t *testing.T) {
 				AccompanyingGuests: 456,
 			})
 
-		assert.Equal(t, ErrGuestNotInList, observedErr)
+		assert.True(t, errors.Is(observedErr, ErrGuestNotInList))
 	})
 
 	t.Run("returns an error when the table is not found", func(t *testing.T) {
@@ -623,9 +607,9 @@ func TestGetEmptySeats(t *testing.T) {
 		{
 			name: "returns an error when the repository returns an error",
 			givenGetTablesMock: func(ctx context.Context) ([]repository.Table, error) {
-				return nil, errors.New("some error")
+				return nil, errTestRepo
 			},
-			expectedError: errors.New("some error"),
+			expectedError: errTestRepo,
 		},
 		{
 			name: "returns no error and the expect output matches",
@@ -662,7 +646,7 @@ func TestGetEmptySeats(t *testing.T) {
 			observedOutput, observedError := party.GetEmptySeats(context.TODO())
 
 			assert.Equal(t, c.expectedOutput, observedOutput)
-			assert.Equal(t, c.expectedError, observedError)
+			assert.True(t, errors.Is(observedError, c.expectedError))
 		})
 	}
 }

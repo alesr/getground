@@ -2,9 +2,12 @@ package party
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alesr/getground/internal/pkg/party/repository"
+	"github.com/alesr/getground/pkg/database"
 	"go.uber.org/zap"
 )
 
@@ -38,13 +41,13 @@ func New(logger *zap.Logger, repo repository.Repository, tableSize int) *Party {
 func (p *Party) AddGuestToGuestList(ctx context.Context, in *AddGuestToGuestListInput) (*AddGuestToGuestListOutput, error) {
 	// Validate input
 	if err := in.validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not validate input for adding guest to list: %w", err)
 	}
 
 	// Get guest list
 	guestlist, err := p.repo.ListGuests(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get guest list: %w", err)
 	}
 
 	// Iterate over guest list and check if guest is already in the list
@@ -56,14 +59,14 @@ func (p *Party) AddGuestToGuestList(ctx context.Context, in *AddGuestToGuestList
 
 	// Get table by number
 	table, err := p.repo.GetTableByNumber(ctx, in.Table)
-	if err != nil {
-		return nil, err
+	if err != nil && !errors.Is(err, database.ErrRecordNotFound) {
+		return nil, fmt.Errorf("could not get table by number: %w", err)
 	}
 
 	// If table does not exist, create it and add guest to guest list
 	if table == nil {
 		if err := p.createTableAndAddToGuestList(ctx, in); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create table and add guest to guest list: %w", err)
 		}
 		return &AddGuestToGuestListOutput{
 			Name: in.Name,
@@ -84,7 +87,7 @@ func (p *Party) AddGuestToGuestList(ctx context.Context, in *AddGuestToGuestList
 	}
 
 	if err := p.repo.UpsertGuest(ctx, &guestStore); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not upsert guest: %w", err)
 	}
 
 	// Update table
@@ -96,7 +99,7 @@ func (p *Party) AddGuestToGuestList(ctx context.Context, in *AddGuestToGuestList
 	}
 
 	if err := p.repo.UpsertTable(ctx, &tableStore); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not upsert table: %w", err)
 	}
 
 	// Return output
@@ -108,7 +111,7 @@ func (p *Party) AddGuestToGuestList(ctx context.Context, in *AddGuestToGuestList
 func (p *Party) GetGuestList(ctx context.Context) (GetGuestListOutput, error) {
 	guests, err := p.repo.ListGuests(ctx)
 	if err != nil {
-		return GetGuestListOutput{}, err
+		return GetGuestListOutput{}, fmt.Errorf("could not get guestlist: %w", err)
 	}
 
 	var list = make([]Guest, 0, len(guests))
@@ -129,7 +132,7 @@ func (p *Party) WelcomeGuest(ctx context.Context, in *WelcomeGuestInput) (*Welco
 	// Get guest in guest list
 	guest, err := p.repo.GetGuestByName(ctx, in.Name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get guest by name: %w", err)
 	}
 
 	// Check if guest is in guest list
@@ -140,7 +143,7 @@ func (p *Party) WelcomeGuest(ctx context.Context, in *WelcomeGuestInput) (*Welco
 	// Get table by number
 	table, err := p.repo.GetTableByNumber(ctx, guest.Table)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get table by number: %w", err)
 	}
 
 	if table == nil {
@@ -162,7 +165,7 @@ func (p *Party) WelcomeGuest(ctx context.Context, in *WelcomeGuestInput) (*Welco
 	}
 
 	if err := p.repo.UpsertTable(ctx, &tableStore); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not upsert table: %w", err)
 	}
 
 	// Mark guest as present
@@ -170,7 +173,7 @@ func (p *Party) WelcomeGuest(ctx context.Context, in *WelcomeGuestInput) (*Welco
 	guest.TimeArrival = &arrivalTime
 
 	if err := p.repo.UpsertGuest(ctx, guest); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not upsert guest: %w", err)
 	}
 
 	// Return output
@@ -182,8 +185,8 @@ func (p *Party) WelcomeGuest(ctx context.Context, in *WelcomeGuestInput) (*Welco
 func (p *Party) GoodbyeGuest(ctx context.Context, in *GoodbyeGuestInput) error {
 	// Get guest in guest list
 	guest, err := p.repo.GetGuestByName(ctx, in.Name)
-	if err != nil {
-		return err
+	if err != nil && !errors.Is(err, database.ErrRecordNotFound) {
+		return fmt.Errorf("could not get guest by name: %w", err)
 	}
 
 	// Check if guest is in guest list
@@ -194,7 +197,7 @@ func (p *Party) GoodbyeGuest(ctx context.Context, in *GoodbyeGuestInput) error {
 	// Get table by number
 	table, err := p.repo.GetTableByNumber(ctx, guest.Table)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get table by number: %w", err)
 	}
 
 	if table == nil {
@@ -209,7 +212,7 @@ func (p *Party) GoodbyeGuest(ctx context.Context, in *GoodbyeGuestInput) error {
 	}
 
 	if err := p.repo.UpsertTable(ctx, &tableStore); err != nil {
-		return err
+		return fmt.Errorf("could not upsert table: %w", err)
 	}
 
 	// Mark guest as absent
@@ -218,7 +221,7 @@ func (p *Party) GoodbyeGuest(ctx context.Context, in *GoodbyeGuestInput) error {
 	guest.TimeDeparture = &timeDeparture
 
 	if err := p.repo.UpsertGuest(ctx, guest); err != nil {
-		return err
+		return fmt.Errorf("could not upsert guest: %w", err)
 	}
 	return nil
 }
@@ -251,7 +254,7 @@ func (p *Party) ListArrivedGuests(ctx context.Context) (ListArrivedGuestsOutput,
 func (p *Party) GetEmptySeats(ctx context.Context) (GetEmptySeatsOutput, error) {
 	tables, err := p.repo.GetTables(ctx)
 	if err != nil {
-		return GetEmptySeatsOutput{}, err
+		return GetEmptySeatsOutput{}, fmt.Errorf("could not get tables: %w", err)
 	}
 
 	var emptySeats int
@@ -277,7 +280,7 @@ func (p *Party) createTableAndAddToGuestList(ctx context.Context, in *AddGuestTo
 	}
 
 	if err := p.repo.UpsertTable(ctx, &tableStore); err != nil {
-		return err
+		return fmt.Errorf("could not upsert table: %w", err)
 	}
 
 	// Add guest to guest list
@@ -289,7 +292,7 @@ func (p *Party) createTableAndAddToGuestList(ctx context.Context, in *AddGuestTo
 	}
 
 	if err := p.repo.UpsertGuest(ctx, &guestStore); err != nil {
-		return err
+		return fmt.Errorf("could not upsert guest: %w", err)
 	}
 	return nil
 }

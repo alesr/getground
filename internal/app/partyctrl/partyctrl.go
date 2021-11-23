@@ -33,12 +33,15 @@ func New(logger *zap.Logger, service party.Service) *Controller {
 func (ctrl *Controller) AddGuestToGuestList(c *fiber.Ctx) error {
 	var req party.AddGuestToGuestListInput
 	if err := c.BodyParser(&req); err != nil {
+		ctrl.logger.Error("could not parse request body", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
 	req.Name = c.Params("name")
+
 	resp, err := ctrl.service.AddGuestToGuestList(context.TODO(), &req)
 	if err != nil {
+		ctrl.logger.Error("could not add guest to guest list", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.Status(http.StatusCreated).JSON(resp)
@@ -47,6 +50,7 @@ func (ctrl *Controller) AddGuestToGuestList(c *fiber.Ctx) error {
 func (ctrl *Controller) GetGuestList(c *fiber.Ctx) error {
 	resp, err := ctrl.service.GetGuestList(context.TODO())
 	if err != nil {
+		ctrl.logger.Error("could not get guest list", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.JSON(resp)
@@ -55,11 +59,15 @@ func (ctrl *Controller) GetGuestList(c *fiber.Ctx) error {
 func (ctrl *Controller) WelcomeGuest(c *fiber.Ctx) error {
 	var req party.WelcomeGuestInput
 	if err := c.BodyParser(&req); err != nil {
+		ctrl.logger.Error("could not parse request body", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
+	req.Name = c.Params("name")
+
 	resp, err := ctrl.service.WelcomeGuest(context.TODO(), &req)
 	if err != nil {
+		ctrl.logger.Error("could not welcome guest", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.JSON(resp)
@@ -68,10 +76,14 @@ func (ctrl *Controller) WelcomeGuest(c *fiber.Ctx) error {
 func (ctrl *Controller) GoodbyeGuest(c *fiber.Ctx) error {
 	var req party.GoodbyeGuestInput
 	if err := c.BodyParser(&req); err != nil {
+		ctrl.logger.Error("could not parse request body", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
+	req.Name = c.Params("name")
+
 	if err := ctrl.service.GoodbyeGuest(context.TODO(), &req); err != nil {
+		ctrl.logger.Error("could not goodbye guest", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.Status(http.StatusOK).JSON(nil)
@@ -80,6 +92,7 @@ func (ctrl *Controller) GoodbyeGuest(c *fiber.Ctx) error {
 func (ctrl *Controller) ListArrivedGuests(c *fiber.Ctx) error {
 	resp, err := ctrl.service.ListArrivedGuests(context.TODO())
 	if err != nil {
+		ctrl.logger.Error("could not list arrived guests", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.JSON(resp)
@@ -88,6 +101,7 @@ func (ctrl *Controller) ListArrivedGuests(c *fiber.Ctx) error {
 func (ctrl *Controller) GetEmptySeats(c *fiber.Ctx) error {
 	resp, err := ctrl.service.GetEmptySeats(context.TODO())
 	if err != nil {
+		ctrl.logger.Error("could not get empty seats", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(err)
 	}
 	return c.JSON(resp)

@@ -17,6 +17,8 @@ services:
     build: . 
     ports:
       - "3000:3000"
+    environment:
+      MYSQL_HOST: db
     depends_on:
       - db
     command: sh -c "/wait && ./party"
